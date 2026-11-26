@@ -19,3 +19,7 @@ ln -s "$PWD/skills/hf-dataset-search" ~/.claude/skills/hf-dataset-search
 ```
 
 Other agents can use a skill by reading its `SKILL.md`.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
