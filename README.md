@@ -7,6 +7,8 @@ with instructions for the agent, plus any scripts it needs.
 |---|---|
 | [hf-dataset-search](hf-dataset-search/) | Search metadata for every public dataset on the Hugging Face Hub from a local index: by meaning, by keyword and by structured filters, without downloading any dataset. |
 
+How it works: https://renaissancelabs-eu.github.io/skills/
+
 ## Install
 
 For Claude Code, link or copy a skill folder into `~/.claude/skills/`:

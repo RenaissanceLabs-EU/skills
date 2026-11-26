@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>hf-dataset-search · Renaissance Labs skills</title>
+<meta name="description" content="An agent skill that searches metadata for every public dataset on the Hugging Face Hub from a local index, without downloading any dataset.">
+<style>
+:root {
+  --paper: #fdfaf3;
+  --card: #f7f1e4;
+  --ink: #1c1a17;
+  --ink-soft: #625b52;
+  --ink-faint: #958c80;
+  --rule: #e6dfd1;
+  --gold: #9a7a48;
+  --code-bg: #211e1a;
+  --code-ink: #efe8da;
+  --code-dim: #a79d8c;
+  --serif: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --gutter: clamp(16px, 5vw, 64px);
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font-family: var(--sans); font-size: 17px; line-height: 1.6;
+}
+a { color: inherit; text-decoration-color: var(--gold); text-underline-offset: 3px; }
+a:hover { color: var(--gold); }
+.wrap { max-width: 960px; margin: 0 auto; padding: 0 var(--gutter); }
+header.top {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 16px;
+  padding: 22px 0; border-bottom: 1px solid var(--rule); font-size: 14px; color: var(--ink-soft);
+}
+header.top .brand { font-family: var(--serif); font-size: 17px; color: var(--ink); text-decoration: none; }
+.hero { padding: clamp(48px, 9vw, 104px) 0 clamp(32px, 5vw, 56px); }
+.eyebrow { font-family: var(--mono); font-size: 13px; color: var(--gold); letter-spacing: .02em; }
+h1 {
+  font-family: var(--serif); font-weight: 500; letter-spacing: -.015em;
+  font-size: clamp(36px, 6.4vw, 66px); line-height: 1.05; margin: 14px 0 22px; max-width: 15ch;
+  text-wrap: balance;
+}
+.lede { font-size: clamp(18px, 2.2vw, 21px); color: var(--ink-soft); max-width: 60ch; margin: 0; }
+.facts {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
+  border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); margin: 0;
+}
+.facts div { padding: 22px 18px 20px 0; }
+.facts div + div { padding-left: 18px; border-left: 1px solid var(--rule); }
+.facts dt { font-size: 13px; color: var(--ink-soft); order: 2; }
+.facts dd { margin: 0; font-family: var(--serif); font-size: clamp(24px, 3.4vw, 34px); line-height: 1.1; }
+.facts div { display: flex; flex-direction: column; gap: 6px; }
+section { padding: clamp(40px, 6vw, 72px) 0 0; }
+h2 {
+  font-family: var(--serif); font-weight: 500; font-size: clamp(26px, 3.6vw, 36px);
+  line-height: 1.15; letter-spacing: -.01em; margin: 0 0 14px; text-wrap: balance;
+}
+h3 { font-size: 16px; margin: 0 0 6px; }
+p { margin: 0 0 16px; max-width: 66ch; }
+.soft { color: var(--ink-soft); }
+.steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 26px 0 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li {
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 18px 16px 16px;
+  counter-increment: s; position: relative;
+}
+.steps li::before {
+  content: counter(s); font-family: var(--serif); font-size: 15px; color: var(--gold);
+  display: block; margin-bottom: 8px;
+}
+.steps p { font-size: 14.5px; color: var(--ink-soft); margin: 0 0 10px; line-height: 1.5; }
+.steps .meta { font-family: var(--mono); font-size: 12px; color: var(--ink-faint); margin: 0; }
+pre {
+  background: var(--code-bg); color: var(--code-ink); font-family: var(--mono); font-size: 13px;
+  line-height: 1.55; padding: 16px 18px; border-radius: 10px; overflow-x: auto; margin: 0 0 18px;
+}
+pre .c { color: var(--code-dim); }
+pre .p { color: #d9b77c; }
+code { font-family: var(--mono); font-size: .9em; background: var(--card); padding: 1px 5px; border-radius: 4px; }
+pre code { background: none; padding: 0; font-size: inherit; }
+.tablewrap { overflow-x: auto; margin: 18px 0 0; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; min-width: 520px; }
+th, td { text-align: left; padding: 10px 14px 10px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-size: 12.5px; font-weight: 600; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .05em; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; padding-right: 0; }
+.bars { margin: 22px 0 0; padding: 0; list-style: none; max-width: 720px; }
+.bars li { display: grid; grid-template-columns: 170px 1fr 52px; gap: 12px; align-items: center; padding: 7px 0; font-size: 15px; }
+.bars .track { height: 10px; background: var(--rule); border-radius: 5px; overflow: hidden; }
+.bars .fill { display: block; height: 100%; background: var(--gold); border-radius: 5px; }
+.bars .pct { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 8px; }
+.two > div { min-width: 0; }
+ul.plain { padding-left: 20px; margin: 0 0 16px; max-width: 66ch; }
+ul.plain li { margin-bottom: 8px; }
+footer { margin-top: clamp(56px, 8vw, 96px); border-top: 1px solid var(--rule); padding: 24px 0 48px; font-size: 14px; color: var(--ink-soft); }
+@media (max-width: 760px) {
+  .facts { grid-template-columns: 1fr 1fr; }
+  .facts div:nth-child(3) { border-left: 0; padding-left: 0; }
+  .facts div:nth-child(n+3) { border-top: 1px solid var(--rule); }
+  .steps { grid-template-columns: 1fr 1fr; }
+  .two { grid-template-columns: 1fr; gap: 8px; }
+  .bars li { grid-template-columns: 120px 1fr 46px; font-size: 14px; }
+}
+@media (max-width: 440px) { .steps { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <a class="brand" href="https://renaissancelabs.eu">Renaissance Labs</a>
+  <span><a href="https://github.com/RenaissanceLabs-EU/skills">github.com/RenaissanceLabs-EU/skills</a></span>
+</header>
+
+<div class="hero">
+  <div class="eyebrow">skills / hf-dataset-search</div>
+  <h1>Every dataset on Hugging Face, searchable by an agent.</h1>
+  <p class="lede">A skill for Claude and other coding agents. It keeps a local index of metadata for every public dataset on the Hub and answers questions about them in seconds. No dataset is ever downloaded.</p>
+</div>
+
+<dl class="facts">
+  <div><dd>1,151,565</dd><dt>public datasets indexed on 26 November 2026</dt></div>
+  <div><dd>2 GB</dd><dt>one SQLite file</dt></div>
+  <div><dd>295 MB</dd><dt>one vector per dataset</dt></div>
+  <div><dd>15 min</dd><dt>to crawl the whole Hub</dt></div>
+</dl>
+
+<section>
+  <h2>How it works</h2>
+  <p>The skill is one Python file and a page of instructions. The file builds the index in three passes and then queries it. Everything except search by meaning runs on the Python standard library.</p>
+  <ol class="steps">
+    <li><h3>Crawl</h3><p>Reads the Hub's dataset listing, 1,000 records per request, and stores each card's tags, license, sizes and description.</p><p class="meta">hfmeta.py crawl</p></li>
+    <li><h3>Enrich</h3><p>Asks the dataset viewer for exact row counts and column names where the card does not declare them.</p><p class="meta">hfmeta.py enrich --all</p></li>
+    <li><h3>Embed</h3><p>Writes a 256-number vector for each dataset from its name, description, tags and columns. One minute on a laptop CPU.</p><p class="meta">hfmeta.py embed</p></li>
+    <li><h3>Search</h3><p>Filters in SQL, matches keywords in a full-text index, or ranks all 1.15 million vectors against the question.</p><p class="meta">hfmeta.py search</p></li>
+  </ol>
+</section>
+
+<section>
+  <h2>What an agent can ask</h2>
+  <p>Hard constraints go into filters. This asks for Swedish chat data under a permissive license that can be fetched without requesting access:</p>
+<pre><code><span class="p">$</span> python3 scripts/hfmeta.py search --lang sv --shape chat --license-class permissive --open
+
+DATASET                                                    DOWNL LIKES    ROWS LICENSE      SHAPE
+openeurollm/Dolci-Instruct-SFT-translated-decontaminated    7.4K     0    5.9M apache-2.0   chat
+lightblue/reasoning-multilingual-R1-Llama-70B-train          800    36    2.5K apache-2.0   chat
+lightblue/reranker_continuous_filt_max7_train                266     8    2.3M apache-2.0   chat,qa
+openeurollm/reasoning-traces-multilingual                    250     1    3.4K cc-by-4.0    chat</code></pre>
+  <p>A topic described in words goes to the vector index, and filters still apply:</p>
+<pre><code><span class="p">$</span> uv run -q scripts/hfmeta.py search --semantic medical question answering with explanations \
+      --modality text --min-rows 10000
+
+DATASET                                            DOWNL SCORE    ROWS LICENSE     SHAPE
+pavanmantha/pubmedqa-dataset                          30  0.68    211K mit         question-answering
+ANR-MALADES/MediQAl                                  548  0.68   32.6K cc-by-4.0   qa
+arkarchanmyaedev/medical-question-answering-data      23  0.64    1.3M mit         instruction
+Eladio/emrqa-msquad                                  547  0.64    163K -           qa
+
+<span class="c">top 4 by similarity, out of 116276 datasets that pass the filters</span></code></pre>
+  <p>Counting questions use <code>stats</code>, and <code>show</code> prints everything known about one dataset as JSON:</p>
+<pre><code><span class="p">$</span> python3 scripts/hfmeta.py stats --by column --shape preference
+<span class="p">$</span> python3 scripts/hfmeta.py show KBLab/overlim</code></pre>
+</section>
+
+<section>
+  <h2>What the index holds</h2>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Field</th><th>Source</th><th>Example</th></tr></thead>
+    <tbody>
+      <tr><td>Languages, tasks, modalities, formats</td><td>Hub tags</td><td><code>language:sv</code>, <code>modality:audio</code></td></tr>
+      <tr><td>License and license class</td><td>Card, then bucketed</td><td><code>cc-by-sa-4.0</code> → sharealike</td></tr>
+      <tr><td>Downloads, likes, created, modified, gated</td><td>Hub API</td><td>774K downloads</td></tr>
+      <tr><td>Rows and bytes</td><td>Dataset viewer, else card</td><td>61.6M rows</td></tr>
+      <tr><td>Column names and types</td><td>Dataset viewer, else card</td><td><code>conversations: list</code></td></tr>
+      <tr><td>Splits per config</td><td>Dataset viewer, else card</td><td><code>boolq_sv / train: 6,285</code></td></tr>
+      <tr><td>Shape</td><td>Guessed from column names</td><td>chat, instruction, qa, preference, speech</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2>What the first crawl showed</h2>
+  <p>Most of the Hub is thinly described. Of the 1,151,565 public datasets on 26 November 2026, before any enrichment:</p>
+  <ul class="bars">
+    <li><span>have a dataset card</span><span class="track"><span class="fill" style="width:68.9%"></span></span><span class="pct">69%</span></li>
+    <li><span>declare a license</span><span class="track"><span class="fill" style="width:36.6%"></span></span><span class="pct">37%</span></li>
+    <li><span>declare their columns</span><span class="track"><span class="fill" style="width:29.8%"></span></span><span class="pct">30%</span></li>
+    <li><span>declare a row count</span><span class="track"><span class="fill" style="width:29.5%"></span></span><span class="pct">30%</span></li>
+  </ul>
+  <p class="soft" style="margin-top:18px">The dataset viewer has column data for roughly another 416,000 datasets. The enrich pass collects it, one request per dataset.</p>
+</section>
+
+<section>
+  <h2>Install</h2>
+  <div class="two">
+    <div>
+      <p>Clone the repository and link the skill into Claude Code. Other agents can read <code>SKILL.md</code> directly.</p>
+<pre><code>git clone https://github.com/RenaissanceLabs-EU/skills.git
+ln -s "$PWD/skills/hf-dataset-search" \
+      ~/.claude/skills/hf-dataset-search</code></pre>
+    </div>
+    <div>
+      <p>Build the index once. It lands in <code>~/.cache/hfmeta/</code> unless <code>HFMETA_DB</code> points elsewhere.</p>
+<pre><code>cd skills/hf-dataset-search
+python3 scripts/hfmeta.py crawl
+uv run -q scripts/hfmeta.py embed</code></pre>
+    </div>
+  </div>
+  <p class="soft">Requirements: Python 3.9 or later. Search by meaning also needs <a href="https://docs.astral.sh/uv/">uv</a>, which installs numpy and model2vec on first use. No Hugging Face account is needed; set <code>HF_TOKEN</code> to reach gated datasets you have access to.</p>
+</section>
+
+<section>
+  <h2>Limits</h2>
+  <ul class="plain">
+    <li><strong>Shape is a guess.</strong> It reads column names, so a dataset with unusual names or no known columns has no shape. Pair a shape filter with a keyword search.</li>
+    <li><strong>License class is a filter.</strong> It buckets the tag the uploader chose. Read the license before training on anything.</li>
+    <li><strong>Search by meaning is a wide net.</strong> The embedding model is small and runs on CPU. Short topic phrases work best, and keyword search sometimes ranks better.</li>
+    <li><strong>The index is a snapshot.</strong> <code>crawl --update</code> fetches what changed. Datasets deleted from the Hub stay until the index is rebuilt.</li>
+    <li><strong>Downloads measure attention.</strong> They say nothing about whether the rows are any good.</li>
+  </ul>
+</section>
+
+<footer>
+  <a href="https://github.com/RenaissanceLabs-EU/skills/tree/main/hf-dataset-search">Source and SKILL.md</a> · <a href="https://renaissancelabs.eu">renaissancelabs.eu</a>
+</footer>
+
+</div>
+</body>
+</html>

@@ -246,15 +246,15 @@ def viewer_dtype(f):
     if not isinstance(f, dict):
         return None
     t = f.get("_type")
+    if not isinstance(t, str):  # a struct that happens to have a field called "_type"
+        return "struct"
     if t == "Value":
-        return f.get("dtype")
+        return f["dtype"] if isinstance(f.get("dtype"), str) else None
     if t in ("Sequence", "List", "LargeList"):
         return "list"
     if t == "ClassLabel":
         return "class_label"
-    if t:
-        return t.lower()
-    return "struct"
+    return t.lower()
 
 
 # ---------------------------------------------------------------- http
@@ -501,6 +501,15 @@ TRANSIENT = ("network_error", "http_429", "http_500", "http_502", "http_503", "h
 
 
 def fetch_viewer(did, token):
+    """Never raises: one odd response must not stop a run over hundreds of thousands."""
+    try:
+        return _fetch_viewer(did, token)
+    except Exception as e:
+        print("  could not parse viewer response for %s: %r" % (did, e), file=sys.stderr)
+        return {"id": did, "status": "parse_error", "rows": None, "bytes": None, "cols": [], "splits": []}
+
+
+def _fetch_viewer(did, token):
     """One /info request per dataset; /size only when the viewer holds a partial copy."""
     q = urllib.parse.urlencode({"dataset": did})
     st, info, _ = http_get("%s/info?%s" % (VIEWER, q), token, retries=3)
@@ -513,9 +522,11 @@ def fetch_viewer(did, token):
     for cfg, ci in (info.get("dataset_info") or {}).items():
         if not isinstance(ci, dict):
             continue
-        for n, f in (ci.get("features") or {}).items():
+        feats = ci.get("features") if isinstance(ci.get("features"), dict) else {}
+        for n, f in feats.items():
             out["cols"].append((str(n), viewer_dtype(f)))
-        for sn, sp in (ci.get("splits") or {}).items():
+        splits = ci.get("splits") if isinstance(ci.get("splits"), dict) else {}
+        for sn, sp in splits.items():
             n = sane_int(sp.get("num_examples")) if isinstance(sp, dict) else None
             b = sane_int(sp.get("num_bytes")) if isinstance(sp, dict) else None
             out["splits"].append((str(cfg), str(sn), n, b))
