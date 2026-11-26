@@ -131,10 +131,10 @@ footer { margin-top: clamp(56px, 8vw, 96px); border-top: 1px solid var(--rule); 
   <h2>How it works</h2>
   <p>The skill is one Python file and a page of instructions. The file builds the index in three passes and then queries it. Everything except search by meaning runs on the Python standard library.</p>
   <ol class="steps">
-    <li><h3>Crawl</h3><p>Reads the Hub's dataset listing, 1,000 records per request, and stores each card's tags, license, sizes and description.</p><p class="meta">hfmeta.py crawl</p></li>
-    <li><h3>Enrich</h3><p>Asks the dataset viewer for exact row counts and column names where the card does not declare them.</p><p class="meta">hfmeta.py enrich --all</p></li>
-    <li><h3>Embed</h3><p>Writes a 256-number vector for each dataset from its name, description, tags and columns. One minute on a laptop CPU.</p><p class="meta">hfmeta.py embed</p></li>
-    <li><h3>Search</h3><p>Filters in SQL, matches keywords in a full-text index, or ranks all 1.15 million vectors against the question.</p><p class="meta">hfmeta.py search</p></li>
+    <li><h3>Crawl</h3><p>Reads the Hub's dataset listing, 1,000 records per request, and stores each card's tags, license, sizes and description.</p><p class="meta">crawl</p></li>
+    <li><h3>Enrich</h3><p>Asks the dataset viewer for exact row counts and column names where the card does not declare them.</p><p class="meta">enrich --all</p></li>
+    <li><h3>Embed</h3><p>Writes a 256-number vector for each dataset from its name, description, tags and columns. One minute on a laptop CPU.</p><p class="meta">embed</p></li>
+    <li><h3>Search</h3><p>Filters in SQL, matches keywords in a full-text index, or ranks all 1.15 million vectors against the question.</p><p class="meta">search</p></li>
   </ol>
 </section>
 
