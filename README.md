@@ -5,7 +5,7 @@ with instructions for the agent, plus any scripts it needs.
 
 | Skill | What it does |
 |---|---|
-| [hf-dataset-search](hf-dataset-search/) | Search metadata for every public dataset on the Hugging Face Hub from a local index: by meaning, by keyword and by structured filters, without downloading any dataset. |
+| [hf-dataset-search](hf-dataset-search/) | Search metadata for every public dataset on the Hugging Face Hub from a local index: by meaning, by keyword and by structured filters, without downloading any dataset. The index is published as [RenaissanceLabsEU/hf-metadataset](https://huggingface.co/datasets/RenaissanceLabsEU/hf-metadataset); `hfmeta.py pull` fetches it. |
 
 How it works: https://renaissancelabs-eu.github.io/skills/
 

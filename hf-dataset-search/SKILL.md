@@ -147,7 +147,14 @@ sqlite3 "$(python3 scripts/hfmeta.py stats | awk '/^index:/{print $2}')" \
 
 The script uses `$HFMETA_DB` if set, then an existing `hfmeta.db` near itself, and
 otherwise `~/.cache/hfmeta/hfmeta.db`. `stats` prints the path in use. If the index is
-empty or missing:
+empty or missing, download the published one (about 0.9 GB to fetch, 2.6 GB on disk,
+a few minutes):
+
+```bash
+python3 scripts/hfmeta.py pull
+```
+
+`stats` then shows its crawl date. To build a fresh one from the Hub instead:
 
 ```bash
 python3 scripts/hfmeta.py crawl            # about 15 minutes, about 2 GB, resumable
@@ -156,4 +163,4 @@ python3 scripts/hfmeta.py enrich --lang sv --max 500   # optional: exact rows an
 ```
 
 `crawl --update` refreshes an existing index; rerun `embed` afterwards. Ask the user
-before starting a full crawl or a large enrich, since both take time and disk space.
+before a pull, a full crawl or a large enrich, since they take time and disk space.

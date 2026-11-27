@@ -17,9 +17,12 @@ from __future__ import annotations
 
 import argparse
 import csv
+import gzip
+import hashlib
 import json
 import os
 import re
+import shutil
 import sqlite3
 import sys
 import time
@@ -33,6 +36,7 @@ HUB = "https://huggingface.co/api/datasets"
 VIEWER = "https://datasets-server.huggingface.co"
 USER_AGENT = "hfmeta/0.1"
 EMBED_MODEL = "minishlab/potion-multilingual-128M"
+RELEASE_REPO = os.environ.get("HFMETA_REPO", "RenaissanceLabsEU/hf-metadataset")
 
 
 def default_db():
@@ -973,6 +977,78 @@ def cmd_stats(args):
         one("SELECT sum(" + ROWS + ") FROM datasets d WHERE %s")))
 
 
+# ---------------------------------------------------------------- pull
+
+def _download(url, dest, token, want_sha):
+    """Stream url to dest (via dest.part), checking the SHA-256 the manifest promised."""
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    if token and urllib.parse.urlparse(url).hostname == "huggingface.co":
+        req.add_header("Authorization", "Bearer " + token)
+    h, done, part = hashlib.sha256(), 0, dest + ".part"
+    with urllib.request.urlopen(req, timeout=120) as r, open(part, "wb") as f:
+        total = int(r.headers.get("Content-Length") or 0)
+        last = time.time()
+        for block in iter(lambda: r.read(1 << 20), b""):
+            f.write(block)
+            h.update(block)
+            done += len(block)
+            if time.time() - last > 5:
+                last = time.time()
+                print("  %s: %d of %s MB" % (os.path.basename(dest), done >> 20,
+                                             (total >> 20) or "?"), file=sys.stderr)
+    if want_sha and h.hexdigest() != want_sha:
+        os.remove(part)
+        sys.exit("checksum mismatch for %s; nothing was replaced" % url)
+    os.replace(part, dest)
+
+
+def cmd_pull(args):
+    """Download a published index instead of crawling: the SQLite file and the vectors."""
+    base = (args.source or "https://huggingface.co/datasets/%s/resolve/main/index" % args.repo).rstrip("/")
+    token = os.environ.get("HF_TOKEN")
+    target = os.path.abspath(args.db)
+    folder = os.path.dirname(target)
+    os.makedirs(folder, exist_ok=True)
+    empty = False
+    if os.path.exists(target):  # an index that other commands created but never filled
+        try:
+            probe = sqlite3.connect(target)
+            empty = probe.execute("SELECT count(*) FROM datasets").fetchone()[0] == 0
+            probe.close()
+        except sqlite3.Error:
+            pass
+    if os.path.exists(target) and not (args.force or empty):
+        sys.exit("%s already exists. Use --force to replace it, or --db for another path." % target)
+    try:
+        req = urllib.request.Request(base + "/manifest.json", headers={"User-Agent": USER_AGENT})
+        with urllib.request.urlopen(req, timeout=60) as r:
+            manifest = json.loads(r.read())
+    except (OSError, ValueError) as e:
+        sys.exit("could not read %s/manifest.json (%s)" % (base, e))
+    files = manifest["files"]
+    need = sum(f.get("unpacked_bytes", f["bytes"]) + f["bytes"] for f in files.values())
+    free = shutil.disk_usage(folder).free
+    if free < need:
+        sys.exit("need about %.1f GB free in %s, have %.1f GB" % (need / 1e9, folder, free / 1e9))
+    print("index of %s datasets, crawled %s" % (manifest.get("datasets"), manifest.get("crawled")),
+          file=sys.stderr)
+    for name, f in files.items():
+        if not re.fullmatch(r"hfmeta\.db(\.gz|\.vec\.npy|\.vec\.rids\.npy|\.vec\.json)", name):
+            continue  # the manifest is remote data: only ever write the file names we expect
+        dest = target + name[len("hfmeta.db"):]
+        _download(base + "/" + name, dest, token, f.get("sha256"))
+        if name.endswith(".gz"):
+            print("  unpacking", file=sys.stderr)
+            with gzip.open(dest, "rb") as fin, open(target + ".part", "wb") as fout:
+                shutil.copyfileobj(fin, fout, 1 << 20)
+            os.remove(dest)
+            for leftover in (target + "-wal", target + "-shm"):
+                if os.path.exists(leftover):
+                    os.remove(leftover)
+            os.replace(target + ".part", target)
+    print("done: %s" % target)
+
+
 def main():
     p = argparse.ArgumentParser(prog="hfmeta", description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -1021,6 +1097,12 @@ def main():
                                  "license, license_class, author, size_category, gated, viewer_status")
     st.add_argument("--limit", type=int, default=30)
     st.set_defaults(fn=cmd_stats)
+
+    pl = sub.add_parser("pull", help="download a published index instead of crawling")
+    pl.add_argument("--repo", default=RELEASE_REPO, help="Hub dataset repo (default: %(default)s, or $HFMETA_REPO)")
+    pl.add_argument("--source", help="base URL of an index/ folder, instead of --repo")
+    pl.add_argument("--force", action="store_true", help="replace an existing index")
+    pl.set_defaults(fn=cmd_pull)
 
     args = p.parse_args()
     try:
