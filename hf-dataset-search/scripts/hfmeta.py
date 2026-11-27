@@ -274,7 +274,7 @@ def http_get(url, token=None, retries=5):
                 body, status, headers = r.read(), r.status, r.headers
         except urllib.error.HTTPError as e:
             body, status, headers = e.read(), e.code, e.headers
-        except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
+        except OSError as e:  # URLError, connection resets, and read timeouts (socket.timeout)
             wait = 2 ** attempt * 2
             print("  network error (%s), retrying in %ds" % (e, wait), file=sys.stderr)
             time.sleep(wait)
